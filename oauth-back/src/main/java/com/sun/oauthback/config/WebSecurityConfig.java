@@ -5,10 +5,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.sun.oauthback.filter.JwtAuthenticationFilter;
+import com.sun.oauthback.handler.OAuth2SuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 public class WebSecurityConfig {
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final DefaultOAuth2UserService oAuth2UserService;
+	private final OAuth2SuccessHandler oAuth2SuccessHandler;
 	
 	@Bean
 	protected SecurityFilterChain configure(HttpSecurity httpSecurity) throws Exception {
@@ -28,8 +32,13 @@ public class WebSecurityConfig {
 			.httpBasic().disable()
 			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 			.authorizeRequests()
-			.antMatchers("/", "/auth/**", "/oauth2/**").permitAll()
-			.anyRequest().authenticated();
+			.antMatchers("/", "/api/v1/auth/**", "/oauth2/**").permitAll()
+			.anyRequest().authenticated().and()
+			.oauth2Login()
+			.redirectionEndpoint().baseUri("/oauth2/callback/*").and()
+			.authorizationEndpoint().baseUri("/api/v1/auth/social").and()
+			.userInfoEndpoint().userService(oAuth2UserService).and()
+			.successHandler(oAuth2SuccessHandler);
 
 		httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
